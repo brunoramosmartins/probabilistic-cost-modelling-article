@@ -1,389 +1,388 @@
-# A Forma do Que Você Vai Gastar
+# The Shape of What You'll Spend
 
-## Modelagem Probabilística de Custos de Pessoal — da Seleção de Distribuições ao Impacto Orçamentário
-
----
-
-## 1. Introdução: Por Que Distribuições Importam
-
-Um orçamento é uma declaração probabilística disfarçada de planilha. Quando um analista projeta custos de pessoal, está implicitamente assumindo uma distribuição de probabilidade para cada componente — salários, horas extras, rescisões, contratações. Na maioria das organizações, essa suposição é a distribuição Normal: simétrica, com caudas leves, bem-comportada.
-
-O problema é que custos de pessoal não são Normais.
-
-Salários são assimétricos à direita: a maioria dos colaboradores recebe salários moderados, enquanto poucos executivos puxam a média para cima. Custos de rescisão são de cauda pesada: a maioria é moderada, mas alguns poucos casos envolvem valores extremos que podem comprometer o orçamento de um trimestre inteiro. Dados salariais frequentemente são multimodais: clusters de juniores, plenos e seniores formam picos distintos que nenhuma distribuição unimodal pode capturar.
-
-**A distribuição que você assume é o seu modelo.** Todo o resto — média, variância, intervalos de confiança, estimativas de risco — flui dessa escolha. Uma distribuição errada não é uma nuance de modelagem; é um viés sistemático que se propaga por todo cálculo a jusante.
-
-$$\text{Distribuição errada} \rightarrow \text{parâmetros errados} \rightarrow \text{orçamento errado} \rightarrow \text{decisões erradas}$$
-
-Este artigo apresenta um framework rigoroso para seleção de distribuições em modelagem de custos. Derivamos a Estimação por Máxima Verossimilhança (MLE) a partir dos fundamentos, ajustamos cinco famílias de distribuições candidatas a dados sintéticos de custos, e usamos critérios informacionais (AIC, BIC) e testes de aderência para selecionar o melhor modelo. Quantificamos o impacto orçamentário de errar na escolha — em um experimento, a subestimação da probabilidade de exceder o dobro do custo esperado chega a um fator de 138x.
-
-### Relação com o Artigo de Monte Carlo
-
-Este artigo é o segundo de um par complementar. O primeiro artigo responde "como simular o custo total dado distribuições assumidas" (Monte Carlo). Este artigo responde a pergunta anterior: "quais distribuições assumir em primeiro lugar?"
+## Probabilistic Modelling of People Costs — from Distribution Selection to Budget Impact
 
 ---
 
-## 2. Os Componentes de Custo
+## 1. Introduction: Why Distributions Matter
 
-### O Modelo
+A budget is a probability statement disguised as a spreadsheet. When an analyst projects people costs, they are implicitly assuming a probability distribution for each component — salaries, overtime, severance, hiring. In most organizations, that assumption is the Normal distribution: symmetric, light-tailed, well-behaved.
 
-Representamos cada componente de custo como uma variável aleatória com propriedades distribucionais distintas. O modelo é genérico, mínimo e expansível.
+The problem is that people costs are not Normal.
 
-| Componente | Símbolo | Candidatas | Justificativa |
-|------------|---------|------------|---------------|
-| Salário base | $S_i$ | LogNormal, Gamma, Mistura(Normal) | Assimétrico à direita; multimodal se há clusters |
-| Custo de hora extra | $C_{ot}$ | LogNormal, Gamma | Assimétrico, sempre positivo |
-| Custo de rescisão | $C_{sev}$ | **Pareto**, LogNormal | Cauda pesada: poucos casos extremamente caros |
-| Custo de contratação | $C_h$ | LogNormal, Gamma | Variável (fees de recrutador, relocação) |
-| Multiplicador de benefícios | $\beta_i$ | Uniform, Beta | Limitado: tipicamente 1,3x–2,2x do salário |
+Salaries are right-skewed: most employees earn moderate wages while a few executives pull the mean upward. Severance costs are heavy-tailed: most are moderate, but a few extreme cases can compromise an entire quarter's budget. Salary data is often multimodal: clusters of juniors, mid-levels, and seniors form distinct peaks that no unimodal distribution can capture.
 
-### Exemplo Concreto: Equipe de 50 Pessoas
+**The distribution you assume is your model.** Everything else — mean, variance, confidence intervals, risk estimates — flows from that choice. A wrong distribution is not a modelling nuance; it is a systematic bias that propagates through every downstream calculation.
 
-Considere uma equipe de TI com 50 colaboradores. Usando parâmetros calibrados para o mercado brasileiro:
+$$\text{Wrong distribution} \rightarrow \text{wrong parameters} \rightarrow \text{wrong budget} \rightarrow \text{wrong decisions}$$
 
-- **Salários**: LogNormal($\mu = 9.1$, $\sigma = 0.4$), mediana ~ R\$ 9.000/mês
-- **Horas extras**: Gamma($\alpha = 4$, $\beta = 1/30$), média ~ R\$ 120/hora
-- **Rescisões**: Pareto($\alpha = 2.5$, $x_m = 10.000$), ~3 eventos/ano
-- **Contratações**: LogNormal($\mu = 9.5$, $\sigma = 0.7$), ~5 contratações/ano
+This article presents a rigorous framework for distribution selection in cost modelling. We derive Maximum Likelihood Estimation (MLE) from first principles, fit five candidate distribution families to synthetic cost data, and use information-theoretic criteria (AIC, BIC) and goodness-of-fit tests to select the best model. We quantify the budget impact of getting the choice wrong — in one experiment, the underestimation of the probability of exceeding twice the expected cost reaches a factor of 138x.
 
-O custo anual total esperado é de aproximadamente R\$ 6,0–6,5 milhões. A questão crucial: a *variância* desse total depende criticamente de quais distribuições você assume. Suposições Normais produzem um intervalo de confiança estreito; suposições corretas de cauda pesada produzem um intervalo muito mais amplo.
+### Relationship to the Monte Carlo Article
+
+This article is the second in a complementary pair. The first article answers "how to simulate total cost given assumed distributions" (Monte Carlo). This article answers the prior question: "which distributions to assume in the first place?"
 
 ---
 
-## 3. Famílias de Distribuições
+## 2. The Cost Components
 
-### As Cinco Candidatas
+### The Model
 
-Para cada componente de custo, consideramos cinco famílias de distribuições, cada uma com propriedades de forma distintas.
+We represent each cost component as a random variable with distinct distributional properties. The model is generic, minimal, and expandable.
 
-**Normal** $N(\mu, \sigma^2)$: A suposição padrão — e frequentemente errada. Simétrica, caudas leves, suporte em $(-\infty, \infty)$. Atribui probabilidade positiva a custos negativos, o que é fisicamente impossível para salários.
+| Component | Symbol | Candidates | Rationale |
+|-----------|--------|------------|-----------|
+| Base salary | $S_i$ | LogNormal, Gamma, Mixture(Normal) | Right-skewed; multimodal if clusters exist |
+| Overtime cost | $C_{ot}$ | LogNormal, Gamma | Right-skewed, always positive |
+| Severance cost | $C_{sev}$ | **Pareto**, LogNormal | Heavy-tailed: a few extremely expensive cases |
+| Hiring cost | $C_h$ | LogNormal, Gamma | Variable (recruiter fees, relocation) |
+| Benefits multiplier | $\beta_i$ | Uniform, Beta | Bounded: typically 1.3x–2.2x of salary |
 
-**LogNormal** $\text{LogNormal}(\mu, \sigma^2)$: Se $Y \sim N(\mu, \sigma^2)$, então $X = e^Y$ é LogNormal. Sempre positiva, assimétrica à direita, surge naturalmente de processos multiplicativos (salário = base $\times$ promoções $\times$ ajustes). Mediana $= e^\mu$.
+### Concrete Example: 50-Person Team
 
-**Gamma** $\text{Gamma}(\alpha, \beta)$: Sempre positiva, forma flexível controlada por $\alpha$. Para $\alpha < 1$, altamente assimétrica; para $\alpha \gg 1$, quase simétrica. Natural para custos de "acumulação" (horas extras ao longo do mês).
+Consider an IT team with 50 employees. Using parameters calibrated to the Brazilian market:
 
-**Pareto** $\text{Pareto}(\alpha, x_m)$: A distribuição de lei de potência. Cauda pesada: $P(X > x) = (x_m/x)^\alpha$ decai polinomialmente, não exponencialmente. Modelar custos extremos (rescisões milionárias). Para $\alpha \leq 2$, variância infinita.
+- **Salaries**: LogNormal($\mu = 9.1$, $\sigma = 0.4$), median ~ R\$ 9,000/month
+- **Overtime**: Gamma($\alpha = 4$, $\beta = 1/30$), mean ~ R\$ 120/hour
+- **Severance**: Pareto($\alpha = 2.5$, $x_m = 10,000$), ~3 events/year
+- **Hiring**: LogNormal($\mu = 9.5$, $\sigma = 0.7$), ~5 hires/year
 
-**Weibull** $\text{Weibull}(k, \lambda)$: Forma flexível, CDF em forma fechada. A função de risco pode ser crescente ($k > 1$), constante ($k = 1$, = Exponencial) ou decrescente ($k < 1$). Útil para custos de "tempo até evento".
-
-### Tabela Comparativa
-
-| Propriedade | Normal | LogNormal | Gamma | Pareto | Weibull |
-|-------------|--------|-----------|-------|--------|---------|
-| Suporte | $(-\infty, \infty)$ | $(0, \infty)$ | $(0, \infty)$ | $[x_m, \infty)$ | $[0, \infty)$ |
-| Assimetria | 0 | $> 0$ sempre | $2/\sqrt{\alpha}$ | pesada | depende de $k$ |
-| Cauda | Leve | Sub-exponencial | Leve | **Pesada** | Leve |
-| MGF existe? | Sim | Não | Sim | Não | Série |
-
-A distribuição Normal **não** é candidata primária para nenhum componente individual de custo. Pode ser apropriada para o *total* orçamentário (pelo TLC), mas não para formas individuais.
-
-![Distribuições candidatas ajustadas aos mesmos dados salariais](../figures/distribution_zoo.png)
+The expected total annual cost is approximately R\$ 6.0–6.5 million. The crucial question: the *variance* of this total depends critically on which distributions you assume. Normal assumptions produce a narrow confidence interval; correct heavy-tailed assumptions produce a much wider one.
 
 ---
 
-## 4. Estimação por Máxima Verossimilhança
+## 3. Distribution Families
 
-### O Problema de Estimação
+### The Five Candidates
 
-Dado um conjunto de dados $x_1, \ldots, x_n$ e uma família de distribuições $f(x \mid \theta)$, queremos encontrar o parâmetro $\theta$ que melhor explica os dados observados.
+For each cost component, we consider five distribution families, each with distinct shape properties.
 
-### A Função de Verossimilhança
+**Normal** $N(\mu, \sigma^2)$: The default assumption — and frequently wrong. Symmetric, light-tailed, support on $(-\infty, \infty)$. Assigns positive probability to negative costs, which is physically impossible for salaries.
+
+**LogNormal** $\text{LogNormal}(\mu, \sigma^2)$: If $Y \sim N(\mu, \sigma^2)$, then $X = e^Y$ is LogNormal. Always positive, right-skewed, arises naturally from multiplicative processes (salary = base $\times$ promotions $\times$ adjustments). Median $= e^\mu$.
+
+**Gamma** $\text{Gamma}(\alpha, \beta)$: Always positive, flexible shape controlled by $\alpha$. For $\alpha < 1$, highly skewed; for $\alpha \gg 1$, nearly symmetric. Natural for "accumulation" costs (overtime across a month).
+
+**Pareto** $\text{Pareto}(\alpha, x_m)$: The power-law distribution. Heavy-tailed: $P(X > x) = (x_m/x)^\alpha$ decays polynomially, not exponentially. Models extreme costs (million-dollar severance packages). For $\alpha \leq 2$, infinite variance.
+
+**Weibull** $\text{Weibull}(k, \lambda)$: Flexible shape, closed-form CDF. The hazard function can be increasing ($k > 1$), constant ($k = 1$, = Exponential), or decreasing ($k < 1$). Useful for "time to event" costs.
+
+### Comparison Table
+
+| Property | Normal | LogNormal | Gamma | Pareto | Weibull |
+|----------|--------|-----------|-------|--------|---------|
+| Support | $(-\infty, \infty)$ | $(0, \infty)$ | $(0, \infty)$ | $[x_m, \infty)$ | $[0, \infty)$ |
+| Skewness | 0 | $> 0$ always | $2/\sqrt{\alpha}$ | heavy | depends on $k$ |
+| Tail | Light | Sub-exponential | Light | **Heavy** | Light |
+| MGF exists? | Yes | No | Yes | No | Series only |
+
+The Normal distribution is **not** a primary candidate for any individual cost component. It may be appropriate for the *total* budget (by CLT), but not for individual cost shapes.
+
+![Candidate distributions fitted to the same salary data](../figures/distribution_zoo.png)
+
+---
+
+## 4. Maximum Likelihood Estimation
+
+### The Estimation Problem
+
+Given a dataset $x_1, \ldots, x_n$ and a distribution family $f(x \mid \theta)$, we want to find the parameter $\theta$ that best explains the observed data.
+
+### The Likelihood Function
 
 $$L(\theta \mid \mathbf{x}) = \prod_{i=1}^n f(x_i \mid \theta)$$
 
-A log-verossimilhança (numericamente estável):
+The log-likelihood (numerically stable):
 
 $$\ell(\theta) = \sum_{i=1}^n \log f(x_i \mid \theta)$$
 
-O **estimador de máxima verossimilhança** (MLE) maximiza $\ell(\theta)$:
+The **maximum likelihood estimator** (MLE) maximizes $\ell(\theta)$:
 
 $$\hat{\theta}_{MLE} = \arg\max_\theta \ell(\theta)$$
 
-### A Função Score e Informação de Fisher
+### Score Function and Fisher Information
 
-A **função score** é o gradiente da log-verossimilhança:
+The **score function** is the gradient of the log-likelihood:
 
 $$S(\theta) = \frac{\partial \ell}{\partial \theta}$$
 
-**Propriedade fundamental**: $E[S(\theta_0)] = 0$ no parâmetro verdadeiro. Demonstração: diferencie $\int f(x|\theta) dx = 1$ sob o sinal de integral.
+**Fundamental property**: $E[S(\theta_0)] = 0$ at the true parameter. Proof: differentiate $\int f(x|\theta) dx = 1$ under the integral sign.
 
-A **informação de Fisher** mede a curvatura da log-verossimilhança:
+**Fisher information** measures the curvature of the log-likelihood:
 
 $$I(\theta) = \text{Var}[S(\theta)] = -E\left[\frac{\partial^2 \ell}{\partial \theta^2}\right]$$
 
-Mais informação = mais curvatura = estimativas mais precisas.
+More information = more curvature = more precise estimates.
 
-### Normalidade Assintótica
+### Asymptotic Normality
 
-Para $n$ grande, o MLE é aproximadamente Normal:
+For large $n$, the MLE is approximately Normal:
 
 $$\hat{\theta}_{MLE} \dot{\sim} N\left(\theta_0, \frac{1}{n \cdot I_1(\theta_0)}\right)$$
 
-Isso nos dá intervalos de confiança automáticos:
+This gives us automatic confidence intervals:
 
 $$\hat{\theta} \pm z_{\alpha/2} \cdot \frac{1}{\sqrt{n \cdot I_1(\hat{\theta})}}$$
 
-### MLE para Nossas Distribuições
+### MLE for Our Distributions
 
-- **Normal**: $\hat{\mu} = \bar{x}$, $\hat{\sigma}^2 = \frac{1}{n}\sum(x_i - \bar{x})^2$ (forma fechada)
-- **LogNormal**: $\hat{\mu} = \overline{\log x}$, $\hat{\sigma}^2 = \text{Var}(\log x)$ (forma fechada)
-- **Gamma**: $\hat{\beta} = \hat{\alpha}/\bar{x}$, $\hat{\alpha}$ via solução numérica (equação envolvendo digamma)
-- **Pareto** ($x_m$ conhecido): $\hat{\alpha} = n / \sum \log(x_i/x_m)$ (forma fechada)
-- **Weibull**: ambos os parâmetros via otimização numérica
+- **Normal**: $\hat{\mu} = \bar{x}$, $\hat{\sigma}^2 = \frac{1}{n}\sum(x_i - \bar{x})^2$ (closed form)
+- **LogNormal**: $\hat{\mu} = \overline{\log x}$, $\hat{\sigma}^2 = \text{Var}(\log x)$ (closed form)
+- **Gamma**: $\hat{\beta} = \hat{\alpha}/\bar{x}$, $\hat{\alpha}$ via numerical solution (digamma equation)
+- **Pareto** ($x_m$ known): $\hat{\alpha} = n / \sum \log(x_i/x_m)$ (closed form)
+- **Weibull**: both parameters via numerical optimization
 
-![Convergência do MLE: estimativas convergem para os parâmetros verdadeiros à medida que n cresce](../figures/mle_convergence.png)
+![MLE Convergence: estimates converge to true parameters as n grows](../figures/mle_convergence.png)
 
 ---
 
-## 5. Comparação de Modelos
+## 5. Model Comparison
 
-### O Problema de Seleção
+### The Selection Problem
 
-Ajustamos várias distribuições aos mesmos dados. Cada uma produz um log-verossimilhança maximizada $\ell(\hat{\theta})$. Qual modelo escolher?
+We fit several distributions to the same data. Each produces a maximized log-likelihood $\ell(\hat{\theta})$. Which model to choose?
 
-Não podemos simplesmente escolher o maior $\ell(\hat{\theta})$ — modelos mais complexos sempre se ajustam melhor aos dados de treinamento (overfitting).
+We cannot simply choose the largest $\ell(\hat{\theta})$ — more complex models always fit training data better (overfitting).
 
-### Divergência KL: Medindo Distância entre Distribuições
+### KL Divergence: Measuring Distance Between Distributions
 
-A divergência de Kullback-Leibler mede a "perda de informação" ao usar $q$ para aproximar $p$:
+The Kullback-Leibler divergence measures the "information loss" when using $q$ to approximate $p$:
 
 $$D_{KL}(p \| q) = \int p(x) \log\frac{p(x)}{q(x)} dx \geq 0$$
 
-com igualdade se e somente se $p = q$ quase certamente (demonstrado via desigualdade de Jensen).
+with equality if and only if $p = q$ almost surely (proved via Jensen's inequality).
 
-### AIC: Critério de Informação de Akaike
+### AIC: Akaike Information Criterion
 
-O AIC estima a divergência KL esperada, corrigindo o viés otimista da log-verossimilhança de treinamento:
+AIC estimates the expected KL divergence, correcting the optimistic bias of training log-likelihood:
 
 $$\text{AIC} = -2\ell(\hat{\theta}) + 2k$$
 
-onde $k$ é o número de parâmetros. Menor AIC = melhor modelo.
+where $k$ is the number of parameters. Lower AIC = better model.
 
-**Pesos de Akaike**: $w_i = e^{-\Delta_i/2} / \sum_j e^{-\Delta_j/2}$ — a probabilidade aproximada de que o modelo $i$ é o melhor entre os candidatos.
+**Akaike weights**: $w_i = e^{-\Delta_i/2} / \sum_j e^{-\Delta_j/2}$ — the approximate probability that model $i$ is the best among candidates.
 
-### BIC: Critério de Informação Bayesiano
+### BIC: Bayesian Information Criterion
 
-Derivado da aproximação de Laplace à evidência marginal Bayesiana:
+Derived from the Laplace approximation to Bayesian marginal evidence:
 
 $$\text{BIC} = -2\ell(\hat{\theta}) + k\log n$$
 
-Penaliza complexidade mais fortemente que o AIC para $n > 7$. O BIC é consistente: seleciona o modelo verdadeiro quando $n \to \infty$.
+Penalizes complexity more strongly than AIC for $n > 7$. BIC is consistent: selects the true model as $n \to \infty$.
 
-### Testes de Aderência
+### Goodness-of-Fit Tests
 
-- **Kolmogorov-Smirnov (KS)**: compara a CDF empírica com a teórica. Sensível a diferenças no centro.
-- **Anderson-Darling (AD)**: como KS, mas com mais peso nas caudas. Crucial para modelagem de custos onde as caudas importam.
+- **Kolmogorov-Smirnov (KS)**: compares empirical CDF with theoretical. Sensitive to differences in the center.
+- **Anderson-Darling (AD)**: like KS, but with more weight on tails. Crucial for cost modelling where tails matter.
 
-### Teste da Razão de Verossimilhanças
+### Likelihood Ratio Test
 
-Para modelos aninhados ($M_0 \subset M_1$):
+For nested models ($M_0 \subset M_1$):
 
 $$\Lambda = -2[\ell(\hat{\theta}_0) - \ell(\hat{\theta}_1)] \xrightarrow{d} \chi^2(\Delta k)$$
 
-Rejeitamos o modelo restrito se $\Lambda$ exceder o valor crítico.
+Reject the restricted model if $\Lambda$ exceeds the critical value.
 
-![Comparação de modelos: AIC, BIC e pesos de Akaike](../figures/model_comparison.png)
+![Model comparison: AIC, BIC, and Akaike weights](../figures/model_comparison.png)
 
 ---
 
-## 6. Modelos de Mistura e Multimodalidade
+## 6. Mixture Models and Multimodality
 
-### O Problema
+### The Problem
 
-Dados salariais frequentemente são bimodais: juniores (~ R\$ 8.000) e seniores (~ R\$ 18.000) formam clusters distintos. Nenhuma distribuição unimodal captura essa estrutura.
+Salary data is often bimodal: juniors (~ R\$ 8,000) and seniors (~ R\$ 18,000) form distinct clusters. No unimodal distribution captures this structure.
 
-Se ajustarmos uma única Normal, obtemos média ~ R\$ 12.200 com variância inflada. O "colaborador médio" a R\$ 12.200 não existe em nenhum dos clusters — a média é enganosa.
+If we fit a single Normal, we get mean ~ R\$ 12,200 with inflated variance. The "average employee" at R\$ 12,200 doesn't exist in either cluster — the mean is misleading.
 
-### Modelo de Mistura Gaussiana (GMM)
+### Gaussian Mixture Model (GMM)
 
 $$f(x) = \sum_{k=1}^K \pi_k \cdot \mathcal{N}(x \mid \mu_k, \sigma_k^2)$$
 
-onde $\pi_k \geq 0$, $\sum_k \pi_k = 1$ são os pesos de mistura.
+where $\pi_k \geq 0$, $\sum_k \pi_k = 1$ are the mixing weights.
 
-### O Algoritmo EM
+### The EM Algorithm
 
-O MLE direto falha porque o $\log$ de uma soma não se decompõe. O algoritmo Expectation-Maximization resolve isso iterativamente:
+Direct MLE fails because the log of a sum doesn't decompose. The Expectation-Maximization algorithm solves this iteratively:
 
-**E-step**: Compute as responsabilidades (probabilidade de cada observação pertencer a cada componente):
+**E-step**: Compute responsibilities (probability of each observation belonging to each component):
 
 $$\gamma_{ik} = \frac{\pi_k \cdot \mathcal{N}(x_i \mid \mu_k, \sigma_k^2)}{\sum_j \pi_j \cdot \mathcal{N}(x_i \mid \mu_j, \sigma_j^2)}$$
 
-**M-step**: Atualize os parâmetros usando as responsabilidades como pesos:
+**M-step**: Update parameters using responsibilities as weights:
 
 $$\pi_k^{new} = \frac{N_k}{n}, \quad \mu_k^{new} = \frac{\sum_i \gamma_{ik} x_i}{N_k}, \quad \sigma_k^{2,new} = \frac{\sum_i \gamma_{ik}(x_i - \mu_k)^2}{N_k}$$
 
-onde $N_k = \sum_i \gamma_{ik}$.
+where $N_k = \sum_i \gamma_{ik}$.
 
-### Convergência Monótona
+### Monotone Convergence
 
-O EM garante $\ell(\theta^{(t+1)}) \geq \ell(\theta^{(t)})$ (demonstrado via desigualdade de Jensen e o ELBO). Converge para um máximo local — usamos múltiplas inicializações aleatórias para mitigar.
+EM guarantees $\ell(\theta^{(t+1)}) \geq \ell(\theta^{(t)})$ (proved via Jensen's inequality and the ELBO). Converges to a local maximum — we use multiple random restarts to mitigate.
 
-### Escolha de K
+### Choosing K
 
-Usamos BIC para selecionar o número de componentes: ajuste GMMs com $K = 1, 2, 3, \ldots$ e escolha o $K$ que minimiza BIC. O BIC penaliza complexidade suficientemente para evitar overfitting com muitos componentes.
+We use BIC to select the number of components: fit GMMs with $K = 1, 2, 3, \ldots$ and choose the $K$ that minimizes BIC.
 
-![Detecção de mistura: GMM identifica estrutura bimodal](../figures/mixture_detection.png)
+![Mixture detection: GMM identifies bimodal structure](../figures/mixture_detection.png)
 
 ---
 
-## 7. Caudas Pesadas e Custos Extremos
+## 7. Heavy Tails and Extreme Costs
 
-### O Clímax Prático
+### The Practical Climax
 
-Este é o ponto central do artigo: **se você usa uma distribuição Normal para custos de rescisão, está sistematicamente sub-reservando.**
+This is the article's central point: **if you use a Normal distribution for severance costs, you are systematically under-reserving.**
 
-### Leve vs Pesada: Definição Formal
+### Light vs Heavy: Formal Definition
 
-Uma distribuição é de **cauda leve** se sua função geradora de momentos existe para algum $t > 0$:
-$M_X(t) = E[e^{tX}] < \infty$. Equivalentemente, $P(X > x)$ decai pelo menos exponencialmente.
+A distribution is **light-tailed** if its moment generating function exists for some $t > 0$: $M_X(t) = E[e^{tX}] < \infty$. Equivalently, $P(X > x)$ decays at least exponentially.
 
-Uma distribuição é de **cauda pesada** se $M_X(t) = \infty$ para todo $t > 0$. A função de sobrevivência decai mais lentamente que qualquer exponencial.
+A distribution is **heavy-tailed** if $M_X(t) = \infty$ for all $t > 0$. The survival function decays slower than any exponential.
 
-### O Comportamento da Cauda Pareto
+### Pareto Tail Behaviour
 
-Para $X \sim \text{Pareto}(\alpha, x_m)$:
+For $X \sim \text{Pareto}(\alpha, x_m)$:
 
 $$P(X > x) = \left(\frac{x_m}{x}\right)^\alpha$$
 
-Isso decai **polinomialmente**. Compare com a Normal, que decai como $e^{-x^2/2}$ (super-exponencialmente).
+This decays **polynomially**. Compare with the Normal, which decays as $e^{-x^2/2}$ (super-exponentially).
 
-**Razão de afinamento da cauda:**
-- Pareto: $P(X > 2c) / P(X > c) = 2^{-\alpha}$ (constante!)
-- Normal: a mesma razão decai exponencialmente
+**Tail thinning ratio:**
+- Pareto: $P(X > 2c) / P(X > c) = 2^{-\alpha}$ (constant!)
+- Normal: the same ratio decays exponentially
 
-### Estimador de Hill
+### Hill Estimator
 
-Para estimar o índice de cauda $\alpha$ a partir de dados:
+To estimate the tail index $\alpha$ from data:
 
 $$\hat{\alpha}_{Hill} = \left[\frac{1}{k}\sum_{i=1}^k \log\frac{X_{(n-i+1)}}{X_{(n-k)}}\right]^{-1}$$
 
-Baseado nos $k$ maiores valores observados. Plote $\hat{\alpha}$ vs $k$ e procure uma região estável.
+Based on the $k$ largest observed values. Plot $\hat{\alpha}$ vs $k$ and look for a stable region.
 
-### Impacto Orçamentário: A Subestimação Catastrófica
+### Budget Impact: The Catastrophic Underestimation
 
-Custos de rescisão: Pareto($\alpha = 2.5$, $x_m = 10.000$) vs Normal com mesmos momentos:
+Severance costs: Pareto($\alpha = 2.5$, $x_m = 10,000$) vs moment-matched Normal:
 
-| Métrica | Pareto | Normal | Razão |
-|---------|--------|--------|-------|
-| $P(X > 50.000)$ | 1,79% | 0,013% | **138x** |
-| $P(X > 100.000)$ | 0,032% | $\approx 0$ | **>1000x** |
-| ES(99%) | R\$ 105.160 | R\$ 55.297 | **1,9x** |
+| Metric | Pareto | Normal | Ratio |
+|--------|--------|--------|-------|
+| $P(X > 50,000)$ | 1.79% | 0.013% | **138x** |
+| $P(X > 100,000)$ | 0.032% | $\approx 0$ | **>1000x** |
+| ES(99%) | R\$ 105,160 | R\$ 55,297 | **1.9x** |
 
-A Normal diz que um evento de R\$ 50.000 acontece uma vez a cada 77.000 casos. A Pareto diz que acontece uma vez a cada 56 casos. As implicações para reservas orçamentárias são radicalmente diferentes.
+The Normal says a R\$ 50,000 severance event happens once in 77,000 cases. The Pareto says it happens once in 56 cases. The budget reserve implications are radically different.
 
-### Value at Risk (VaR) e Expected Shortfall (ES)
+### Value at Risk (VaR) and Expected Shortfall (ES)
 
-**VaR** ao nível $p$: o quantil $p$-ésimo. "Temos $p$% de confiança que o custo não excederá VaR."
+**VaR** at level $p$: the $p$-th quantile. "We are $p$% confident cost won't exceed VaR."
 
-**ES** (CVaR): a perda média dado que excedeu o VaR. "Se os custos excederem o VaR, quão ruim é em média?"
+**ES** (CVaR): the average loss given it exceeded VaR. "If costs exceed VaR, how bad is it on average?"
 
-Para a Pareto: $\text{ES}_p = \frac{\alpha}{\alpha - 1} \cdot \text{VaR}_p$ — sempre um múltiplo fixo do VaR.
+For the Pareto: $\text{ES}_p = \frac{\alpha}{\alpha - 1} \cdot \text{VaR}_p$ — always a fixed multiple of VaR.
 
-![Comparação de risco de cauda: Normal vs Pareto](../figures/tail_risk_comparison.png)
-
----
-
-## 8. Experimentos e Resultados
-
-### Experimento A: O Zoológico de Distribuições
-
-Ajustamos todas as cinco famílias candidatas aos mesmos dados salariais sintéticos (LogNormal como verdade). A figura mostra como cada família se adapta aos dados: a LogNormal captura perfeitamente a assimetria, enquanto a Normal falha nas caudas.
-
-### Experimento B: Convergência do MLE
-
-Demonstramos que as estimativas MLE convergem para os parâmetros verdadeiros conforme $n$ cresce, e que os erros padrão diminuem proporcionalmente a $1/\sqrt{n}$. Com $n = 50$, as estimativas já são razoáveis; com $n = 5.000$, são essencialmente exatas.
-
-### Experimento C: O Custo da Distribuição Errada
-
-Ajustamos Normal a dados que são na verdade LogNormal. Resultados:
-- A probabilidade de exceder 2x a média é subestimada em ~3x
-- A probabilidade de exceder 3x a média é subestimada em ~8x
-- O VaR a 99% é subestimado em R\$ 2.000–3.000 por colaborador
-- Para uma equipe de 50 pessoas, isso representa R\$ 100.000–150.000 de reserva insuficiente
-
-![Impacto da distribuição errada no orçamento](../figures/wrong_distribution_impact.png)
-
-### Experimento D: Detecção de Mistura
-
-Geramos dados bimodais (60% juniores a R\$ 8.000, 40% seniores a R\$ 18.000). O GMM com seleção por BIC identifica corretamente $K = 2$ componentes e recupera os parâmetros com boa precisão. Uma Normal única produz média de R\$ 12.000 que não representa nenhum colaborador real.
-
-### Experimento E: Risco de Cauda Pesada
-
-O experimento central: comparamos Pareto vs Normal para custos de rescisão. A Normal subestima $P(X > 50.000)$ por um fator de 138x. Para planejamento orçamentário, isso é a diferença entre "evento impossível" e "acontece ~2% das vezes".
-
-### Experimento F: Comparação de Modelos
-
-Aplicamos AIC, BIC e teste KS a dados salariais. A LogNormal vence com peso de Akaike > 96%. A Normal é decisivamente rejeitada. O Gamma compete mas fica em segundo lugar.
-
-### Experimento G: Pipeline Completo
-
-Demonstração end-to-end: dados de equipe → ajuste de todas as candidatas → seleção via AIC/BIC → quantificação de impacto orçamentário. O pipeline identifica automaticamente LogNormal para salários e Pareto para rescisões.
-
-![Pipeline end-to-end: dados → ajuste → seleção → impacto orçamentário](../figures/full_pipeline.png)
+![Tail risk comparison: Normal vs Pareto](../figures/tail_risk_comparison.png)
 
 ---
 
-## 9. Framework Prático
+## 8. Experiments and Results
 
-### Árvore de Decisão para Seleção de Distribuição
+### Experiment A: The Distribution Zoo
 
-**Passo 1: Visualize**
-- Histograma + Q-Q plot
-- Os dados são assimétricos? Multimodais? Há valores extremos?
+We fit all five candidate families to the same synthetic salary data (LogNormal as ground truth). The figure shows how each family adapts: LogNormal captures the skewness perfectly, while the Normal fails in the tails.
 
-**Passo 2: Ajuste candidatas**
-- Use MLE para ajustar 3-5 famílias de distribuição
-- Verifique convergência e razoabilidade dos parâmetros
+### Experiment B: MLE Convergence
 
-**Passo 3: Compare**
-- Compute AIC e BIC para todas as candidatas
-- Compute pesos de Akaike — há um vencedor claro?
-- Use AIC para predição, BIC para identificar o modelo "verdadeiro"
+We demonstrate that MLE estimates converge to true parameters as $n$ grows, and that standard errors shrink proportionally to $1/\sqrt{n}$. With $n = 50$, estimates are already reasonable; with $n = 5,000$, they are essentially exact.
 
-**Passo 4: Valide**
-- Teste de aderência (Anderson-Darling para caudas)
-- Q-Q plot do modelo vencedor
-- O modelo vencedor passa nos testes?
+### Experiment C: The Cost of the Wrong Distribution
 
-**Passo 5: Quantifique o impacto**
-- Compute VaR e ES sob o modelo selecionado
-- Compare com o que a Normal teria previsto
-- Traduza a diferença em R\$ de reserva orçamentária
+We fit Normal to data that is actually LogNormal. Results:
+- Probability of exceeding 2x the mean is underestimated by ~3x
+- Probability of exceeding 3x the mean is underestimated by ~8x
+- VaR at 99% is underestimated by R\$ 2,000–3,000 per employee
+- For a 50-person team, this represents R\$ 100,000–150,000 of insufficient reserve
 
-### Armadilhas Comuns
+![Impact of the wrong distribution on budget](../figures/wrong_distribution_impact.png)
 
-1. **Usar Normal por padrão** → subestima caudas sistematicamente
-2. **Ignorar multimodalidade** → variância inflada, média sem sentido
-3. **Olhar só a média** → ignora toda a informação da forma
-4. **Amostra pequena** → use AICc, não AIC
-5. **Não validar** → o modelo com melhor AIC pode ainda assim não se ajustar bem
+### Experiment D: Mixture Detection
 
----
+We generate bimodal data (60% juniors at R\$ 8,000, 40% seniors at R\$ 18,000). GMM with BIC selection correctly identifies $K = 2$ components and recovers parameters with good precision. A single Normal produces a mean of R\$ 12,000 that represents no actual employee.
 
-## 10. Conclusão
+### Experiment E: Heavy Tail Risk
 
-### A Distribuição É o Modelo
+The central experiment: we compare Pareto vs Normal for severance costs. The Normal underestimates $P(X > 50,000)$ by a factor of 138x. For budget planning, this is the difference between "impossible event" and "happens ~2% of the time".
 
-A suposição distribucional não é um detalhe técnico — é a decisão de modelagem mais importante que um analista de custos faz. Todo cálculo a jusante (média, variância, intervalos de confiança, reservas) herda essa escolha.
+### Experiment F: Model Comparison
 
-### Principais Conclusões
+We apply AIC, BIC, and KS test to salary data. LogNormal wins with Akaike weight > 96%. Normal is decisively rejected. Gamma competes but finishes second.
 
-1. **Custos de pessoal são estruturalmente não-Normais**: assimétricos (LogNormal), de cauda pesada (Pareto), e frequentemente multimodais (GMM). A Normal é a exceção, não a regra.
+### Experiment G: End-to-End Pipeline
 
-2. **O MLE fornece o framework principiado** para ajuste: parâmetros ótimos, erros padrão automáticos, e uma base teórica sólida para comparação via AIC/BIC.
+End-to-end demonstration: team data → fit all candidates → select via AIC/BIC → quantify budget impact. The pipeline automatically identifies LogNormal for salaries and Pareto for severance.
 
-3. **O impacto de errar é mensurável e substancial**: a Normal subestima a probabilidade de custos extremos por fatores de 100x ou mais. Para uma equipe de 50 pessoas, isso pode representar centenas de milhares de reais em reserva insuficiente.
-
-### Próximos Passos
-
-Este artigo estabelece o framework de seleção distribucional. O artigo complementar (Monte Carlo) mostra como usar essas distribuições para simular o custo total de uma equipe, incluindo correlações entre componentes e análise de cenários.
-
-O código completo está disponível no repositório associado, com dados sintéticos reprodutíveis e figuras em qualidade de publicação.
+![End-to-end pipeline: data → fit → select → budget impact](../figures/full_pipeline.png)
 
 ---
 
-## Referências
+## 9. Practical Framework
+
+### Decision Tree for Distribution Selection
+
+**Step 1: Visualize**
+- Histogram + Q-Q plot
+- Is the data skewed? Multimodal? Are there extreme values?
+
+**Step 2: Fit candidates**
+- Use MLE to fit 3-5 distribution families
+- Check convergence and parameter reasonableness
+
+**Step 3: Compare**
+- Compute AIC and BIC for all candidates
+- Compute Akaike weights — is there a clear winner?
+- Use AIC for prediction, BIC for identifying the "true" model
+
+**Step 4: Validate**
+- Goodness-of-fit test (Anderson-Darling for tails)
+- Q-Q plot of the winning model
+- Does the winning model actually fit well?
+
+**Step 5: Quantify impact**
+- Compute VaR and ES under the selected model
+- Compare with what Normal would have predicted
+- Translate the difference into R\$ of budget reserve
+
+### Common Pitfalls
+
+1. **Using Normal by default** → systematically underestimates tails
+2. **Ignoring multimodality** → inflated variance, meaningless mean
+3. **Looking only at the mean** → ignores all shape information
+4. **Small sample** → use AICc, not AIC
+5. **Not validating** → the model with best AIC may still not fit well
+
+---
+
+## 10. Conclusion
+
+### The Distribution Is the Model
+
+The distributional assumption is not a technical detail — it is the most important modelling decision a cost analyst makes. Every downstream calculation (mean, variance, confidence intervals, reserves) inherits this choice.
+
+### Key Takeaways
+
+1. **People costs are structurally non-Normal**: right-skewed (LogNormal), heavy-tailed (Pareto), and often multimodal (GMM). The Normal is the exception, not the rule.
+
+2. **MLE provides the principled framework** for fitting: optimal parameters, automatic standard errors, and a solid theoretical basis for comparison via AIC/BIC.
+
+3. **The impact of getting it wrong is measurable and substantial**: the Normal underestimates the probability of extreme costs by factors of 100x or more. For a 50-person team, this can represent hundreds of thousands of R\$ in insufficient reserves.
+
+### Next Steps
+
+This article establishes the distributional selection framework. The companion article (Monte Carlo) shows how to use these distributions to simulate total team cost, including correlations between components and scenario analysis.
+
+The complete code is available in the associated repository, with reproducible synthetic data and publication-quality figures.
+
+---
+
+## References
 
 - Casella, G. & Berger, R. (2002). *Statistical Inference*. Duxbury.
 - Burnham, K. & Anderson, D. (2002). *Model Selection and Multimodel Inference*. Springer.
