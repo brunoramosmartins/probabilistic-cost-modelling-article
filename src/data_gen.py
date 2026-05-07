@@ -12,9 +12,8 @@ from src.distributions import (
     Distribution,
     GammaDist,
     LogNormalDist,
-    NormalDist,
+    NormalDist,  # noqa: F401  # re-exported for docstring examples
     ParetoDist,
-    WeibullDist,
 )
 
 

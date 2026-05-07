@@ -8,17 +8,17 @@ Usage:
     python scripts/exp_heavy_tail_risk.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
-from src.heavy_tails import tail_probability, compare_tail_risk
 from src.budget_impact import (
-    analytical_var_normal,
-    analytical_var_pareto,
     analytical_es_normal,
     analytical_es_pareto,
+    analytical_var_normal,
+    analytical_var_pareto,
 )
+from src.heavy_tails import tail_probability
 
 # --- Configuration ---
 SEED = 42

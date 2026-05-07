@@ -341,7 +341,6 @@ def fit_weibull(data: NDArray[np.float64]) -> FitResult:
     # Observed Fisher information via numerical Hessian
     eps = 1e-5
     hessian = np.zeros((2, 2))
-    f0 = result.fun
     for i in range(2):
         for j in range(2):
             params_pp = result.x.copy()

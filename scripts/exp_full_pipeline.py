@@ -8,19 +8,17 @@ Usage:
     python scripts/exp_full_pipeline.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from scipy import stats
 
-from src.data_gen import generate_team_data
-from src.fitting import fit_all
-from src.model_selection import compare_models, ks_test
 from src.budget_impact import (
     compare_distributions_impact,
-    var_at_level,
-    expected_shortfall,
 )
+from src.data_gen import generate_team_data
+from src.fitting import fit_all
+from src.model_selection import compare_models
 
 # --- Configuration ---
 SEED = 42

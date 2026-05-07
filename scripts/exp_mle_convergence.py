@@ -8,8 +8,8 @@ Usage:
     python scripts/exp_mle_convergence.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
 from src.fitting import fit_lognormal

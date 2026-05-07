@@ -10,12 +10,11 @@ Usage:
     python scripts/exp_model_comparison.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
 from src.data_gen import generate_salary_data
-from src.distributions import LogNormalDist
 from src.fitting import fit_all
 from src.model_selection import compare_models, ks_test
 
