@@ -7,18 +7,17 @@ Usage:
     python scripts/exp_distribution_zoo.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
+from src.data_gen import generate_salary_data
 from src.distributions import (
     GammaDist,
     LogNormalDist,
     NormalDist,
-    ParetoDist,
     WeibullDist,
 )
-from src.data_gen import generate_salary_data
 
 # --- Configuration ---
 SEED = 42

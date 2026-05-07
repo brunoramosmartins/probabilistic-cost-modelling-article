@@ -10,14 +10,14 @@ Usage:
     python scripts/exp_wrong_distribution.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from scipy import stats
 
+from src.budget_impact import budget_reserve, expected_shortfall, var_at_level
 from src.data_gen import generate_salary_data
 from src.fitting import fit_lognormal, fit_normal
-from src.budget_impact import var_at_level, expected_shortfall, budget_reserve
 
 # --- Configuration ---
 SEED = 42

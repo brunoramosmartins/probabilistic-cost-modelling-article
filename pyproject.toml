@@ -22,6 +22,13 @@ dev = [
     "ruff>=0.8",
 ]
 
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
 [tool.ruff]
 target-version = "py310"
 line-length = 88
@@ -40,6 +47,42 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)
+    "B905",  # zip() without strict — verbose for short scripts
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks: relaxed rules for exploratory code
+"notebooks/*" = [
+    "E402",   # module-level imports not at top of cell (cells legitimately do this)
+    "F401",   # unused imports (kept for documentation/future use)
+    "F811",   # redefinition (cell re-imports are fine)
+    "F541",   # f-string without placeholders (often used for formatting consistency)
+    "I001",   # import sorting (cells aren't files)
+    "N816",   # mixedCase variable names (math convention: K, N_k, etc)
+    "SIM300", # Yoda conditions (readability preference)
+]
+
+# Mathematical modules: allow K, N_k, optimal_K, select_K matching the article's notation
+"src/mixture.py" = [
+    "N802",   # function names lowercase (select_K matches K in math notation)
+    "N803",   # argument names lowercase (K is the standard in mixture model literature)
+    "N806",   # variable names lowercase (N_k, K_range follow textbook convention)
+    "N815",   # mixedCase in class scope (optimal_K)
+]
+
+# Tests: allow same math conventions
+"tests/*" = [
+    "N806",   # K, optimal_K in tests mirror src naming
+    "F401",   # unused imports (e.g. pytest fixtures)
+    "E712",   # == True for explicit boolean asserts
+]
+
+# Scripts: lambdas and unused control variables OK in standalone scripts
+"scripts/*" = [
+    "E731",   # lambda assignments (concise CDF wrappers)
+    "B007",   # unused loop variables in replication loops
+    "F541",   # f-string without placeholders (header prints)
+    "N806",   # K, Ks in plotting code
 ]
 
 [tool.ruff.lint.isort]

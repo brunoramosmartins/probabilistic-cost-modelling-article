@@ -8,8 +8,8 @@ Usage:
     python scripts/exp_mixture_detection.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from scipy import stats
 
