@@ -81,7 +81,7 @@ Before diving into the formalism, three numbers frame why the choice matters. Th
 
 **Three concrete impacts on a 50-person team:**
 
-1. **Tail probability gap (severance):** $P(X > \text{R\$ 50,000})$ is **138x higher** under Pareto than under Normal. The "rare event" that the Normal predicts becomes a routine occurrence under the correct model.
+1. **Tail probability gap (severance):** $P(X > 50{,}000)$ — i.e., the probability of a severance event exceeding R\$ 50,000 — is **138x higher** under Pareto than under Normal. The "rare event" that the Normal predicts becomes a routine occurrence under the correct model.
 
 2. **Hidden bimodality (salary):** A single Normal fit to a juniors/seniors mixture inflates the variance estimate by ~40% while the mean represents no actual employee. The 95% VaR ends up wrong in both directions.
 

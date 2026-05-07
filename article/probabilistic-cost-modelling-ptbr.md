@@ -81,7 +81,7 @@ Antes de mergulhar no formalismo, três números enquadram por que a escolha imp
 
 **Três impactos concretos em uma equipe de 50 pessoas:**
 
-1. **Gap de probabilidade de cauda (rescisão):** $P(X > \text{R\$ 50.000})$ é **138x maior** sob Pareto que sob Normal. O "evento raro" que a Normal prevê torna-se ocorrência rotineira sob o modelo correto.
+1. **Gap de probabilidade de cauda (rescisão):** $P(X > 50{.}000)$ — ou seja, a probabilidade de uma rescisão exceder R\$ 50.000 — é **138x maior** sob Pareto que sob Normal. O "evento raro" que a Normal prevê torna-se ocorrência rotineira sob o modelo correto.
 
 2. **Bimodalidade oculta (salário):** uma única Normal ajustada a uma mistura de juniores/seniores infla a estimativa de variância em ~40% enquanto a média não representa nenhum colaborador real. O VaR a 95% acaba errado em ambas as direções.
 
